@@ -1,22 +1,26 @@
 
 
+
 import Foundation
 import Observation
 
 @Observable
-final class OnboardingViewModel {
+final class LearningTrackerViewModel {
 
-    var learningGoal: String = ""
+    var learningGoal = ""
     var selectedDuration: LearningDuration = .week
-    var hasStarted: Bool = false
+    var currentGoal: LearningGoal?
 
-    var canStart: Bool {
+    var canStartLearning: Bool {
         !learningGoal.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     func startLearning() {
-        guard canStart else { return }
-        learningGoal = learningGoal.trimmingCharacters(in: .whitespacesAndNewlines)
-        hasStarted = true
+        guard canStartLearning else { return }
+
+        currentGoal = LearningGoal(
+            title: learningGoal.trimmingCharacters(in: .whitespacesAndNewlines),
+            duration: selectedDuration
+        )
     }
 }
