@@ -17,4 +17,4 @@ Learning Tracker is an iOS app that helps you set a learning goal, log the days 
 
 ## Author
 
-Jumanah Al-Obeawi · Apple Developer Academy
+Jumanah Almutairi · Apple Developer Academy
