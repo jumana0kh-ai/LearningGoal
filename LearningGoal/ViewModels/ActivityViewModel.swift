@@ -18,13 +18,14 @@ final class ActivityViewModel {
 
     private let calendar = Calendar.current
 
-    // Used to refresh time-dependent values.
     var now = Date()
 
     init(goal: LearningGoal) {
-        currentGoal = goal
+        self.currentGoal = goal
         loadDays()
     }
+
+    // MARK: - Dates
 
     var today: Date {
         calendar.startOfDay(for: now)
@@ -51,6 +52,8 @@ final class ActivityViewModel {
         status(for: today)
     }
 
+    // MARK: - Freezes
+
     var maxFreezes: Int {
         currentGoal.duration.allowedFreezes
     }
@@ -65,34 +68,28 @@ final class ActivityViewModel {
         max(0, maxFreezes - frozenCount)
     }
 
-    var canLogLearning: Bool {
-        todayStatus == nil
-    }
-
-    var canFreeze: Bool {
-        todayStatus == nil && remainingFreezes > 0
-    }
+    // MARK: - Streak
 
     var currentStreak: Int {
-        let ordered = days
-            .filter { $0.date >= calendar.startOfDay(for: currentGoal.startDate) }
-            .sorted { $0.date > $1.date }
+        let orderedDays = days.sorted {
+            $0.date > $1.date
+        }
 
-        guard let latest = ordered.first else {
+        guard let latestDay = orderedDays.first else {
             return 0
         }
 
-        let latestAction = latest.actionDate ?? latest.date
+        let lastAction = latestDay.actionDate ?? latestDay.date
 
-        // A streak expires after 32 hours without an action.
-        guard now.timeIntervalSince(latestAction) <= 32 * 60 * 60 else {
+        guard now.timeIntervalSince(lastAction) <= 32 * 60 * 60 else {
             return 0
         }
 
         var streak = 0
         var previousDate: Date?
 
-        for day in ordered {
+        for day in orderedDays {
+
             if let previousDate {
                 let difference = calendar.dateComponents(
                     [.day],
@@ -105,7 +102,12 @@ final class ActivityViewModel {
                 }
             }
 
-            streak += 1
+            // Frozen days maintain continuity
+            // without adding to Learned.
+            if day.status == .learned {
+                streak += 1
+            }
+
             previousDate = day.date
         }
 
@@ -116,6 +118,88 @@ final class ActivityViewModel {
         currentStreak
     }
 
+    // MARK: - Goal Completion
+
+    private var effectiveStartDate: Date {
+        currentGoal.startDate
+    }
+
+    var goalEndDate: Date {
+        let startDate = calendar.startOfDay(
+            for: effectiveStartDate
+        )
+
+        switch currentGoal.duration {
+        case .week:
+            return calendar.date(
+                byAdding: .day,
+                value: 7,
+                to: startDate
+            ) ?? startDate
+
+        case .month:
+            return calendar.date(
+                byAdding: .month,
+                value: 1,
+                to: startDate
+            ) ?? startDate
+
+        case .year:
+            return calendar.date(
+                byAdding: .year,
+                value: 1,
+                to: startDate
+            ) ?? startDate
+        }
+    }
+
+    var isGoalFinished: Bool {
+        today >= goalEndDate
+    }
+
+    var isGoalCompleted: Bool {
+        guard isGoalFinished else {
+            return false
+        }
+
+        var date = calendar.startOfDay(
+            for: effectiveStartDate
+        )
+
+        while date < goalEndDate {
+            guard let dayStatus = status(for: date),
+                  dayStatus == .learned || dayStatus == .frozen else {
+                return false
+            }
+
+            guard let nextDate = calendar.date(
+                byAdding: .day,
+                value: 1,
+                to: date
+            ) else {
+                return false
+            }
+
+            date = nextDate
+        }
+
+        return true
+    }
+
+    // MARK: - Button States
+
+    var canLogLearning: Bool {
+        !isGoalFinished && todayStatus == nil
+    }
+
+    var canFreeze: Bool {
+        !isGoalFinished &&
+        todayStatus == nil &&
+        remainingFreezes > 0
+    }
+
+    // MARK: - Day Status
+
     func status(for date: Date) -> DayStatus? {
         days.first {
             calendar.isDate(
@@ -124,6 +208,8 @@ final class ActivityViewModel {
             )
         }?.status
     }
+
+    // MARK: - Actions
 
     func logAsLearned() {
         guard canLogLearning else {
@@ -194,4 +280,3 @@ final class ActivityViewModel {
         days = saved
     }
 }
-
