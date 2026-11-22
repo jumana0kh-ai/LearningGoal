@@ -1,6 +1,6 @@
 # Learning Tracker
 
-A0AFA99A-BA04-4309-B7A2-91A737CF3420.PNG
+![Learning Tracker banner](./A0AFA99A-BA04-4309-B7A2-91A737CF3420.PNG)
 
 Learning Tracker is an iOS app that helps you set a learning goal, log the days you practiced, and see your progress over time.
 
